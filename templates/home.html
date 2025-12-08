@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Dự đoán chất lượng nước nuôi tôm</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="container">
+
+    <h1>Hệ thống hỗ trợ nuôi tôm – ShrimpGPT</h1>
+    <p class="subtitle">Nhập dữ liệu quan trắc nước để dự đoán rủi ro bệnh và mức độ phù hợp môi trường.</p>
+
+    <form method="POST" action="/predictdata">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="diem_quan_trac">Điểm quan trắc</label>
+          <input type="text" id="diem_quan_trac" name="DIEM_QUAN_TRAC" required>
+        </div>
+
+        <div class="form-group">
+          <label for="xa">Xã</label>
+          <input type="text" id="xa" name="XA" required>
+        </div>
+
+        <div class="form-group">
+          <label for="huyen">Huyện</label>
+          <input type="text" id="huyen" name="HUYEN" required>
+        </div>
+
+        <div class="form-group">
+          <label for="nhiet_do">Nhiệt độ (°C)</label>
+          <input type="number" step="0.1" id="nhiet_do" name="NHIET_DO" required>
+        </div>
+
+        <div class="form-group">
+          <label for="ph">pH</label>
+          <input type="number" step="0.1" id="ph" name="PH" required>
+        </div>
+
+        <div class="form-group">
+          <label for="do">DO (mg/l)</label>
+          <input type="number" step="0.1" id="do" name="DO" required>
+        </div>
+
+        <div class="form-group">
+          <label for="do_man">Độ mặn (‰)</label>
+          <input type="number" step="0.1" id="do_man" name="DO_MAN" required>
+        </div>
+
+        <div class="form-group">
+          <label for="do_trong">Độ trong (cm)</label>
+          <input type="number" step="0.1" id="do_trong" name="DO_TRONG" required>
+        </div>
+
+        <div class="form-group">
+          <label for="do_kiem">Độ kiềm (mgCaCO₃/l)</label>
+          <input type="number" step="0.1" id="do_kiem" name="DO_KIEM" required>
+        </div>
+
+        <div class="form-group">
+          <label for="no2">N-NO₂⁻ (mg/l)</label>
+          <input type="number" step="0.001" id="no2" name="NO2" required>
+        </div>
+
+        <div class="form-group">
+          <label for="no3">N-NO₃⁻ (mg/l)</label>
+          <input type="number" step="0.001" id="no3" name="NO3" required>
+        </div>
+
+        <div class="form-group">
+          <label for="nh4">N-NH₄⁺ (mg/l)</label>
+          <input type="number" step="0.001" id="nh4" name="NH4" required>
+        </div>
+
+        <div class="form-group">
+          <label for="po43">P-PO₄³⁻ (mg/l)</label>
+          <input type="number" step="0.001" id="po43" name="PO43" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cod">COD (mg/l)</label>
+          <input type="number" step="0.1" id="cod" name="COD" required>
+        </div>
+
+        <div class="form-group">
+          <label for="nam">Năm</label>
+          <input type="number" id="nam" name="NAM" required>
+        </div>
+
+        <div class="form-group">
+          <label for="thang">Tháng</label>
+          <input type="number" id="thang" name="THANG" required>
+        </div>
+
+        <div class="form-group">
+          <label for="ngay">Ngày</label>
+          <input type="number" id="ngay" name="NGAY" required>
+        </div>
+
+      </div>
+
+      <button type="submit" class="primary-btn">Dự đoán</button>
+    </form>
+
+    {% if results %}
+      <hr>
+      <h2>Kết quả dự đoán</h2>
+      <div class="result-box">
+        <p><b>Nguy cơ bệnh Vibrio:</b> {{ results.task1_text }} (label = {{ results.task1_label }})</p>
+        <p><b>Vibrio tổng số ước lượng:</b> ≈ {{ results.task2_vibrio_est }} CFU/ml (log₁₀ = {{ results.task2_vibrio_log }})</p>
+        <p><b>Mức độ phù hợp môi trường tôm:</b> {{ results.task3_text }} (label = {{ results.task3_label }})</p>
+        <p><b>Điều kiện tảo thức ăn:</b> {{ results.task4_text }} (label = {{ results.task4_label }})</p>
+      </div>
+    {% endif %}
+
+    <p class="back-link"><a href="/">⬅ Về trang chủ</a></p>
+
+  </div> 
+
+  <script>
+    const today = new Date();
+    document.getElementById("nam").value = today.getFullYear();
+    document.getElementById("thang").value = today.getMonth() + 1;
+    document.getElementById("ngay").value = today.getDate();
+  </script>
+
+</body>
+</html>
