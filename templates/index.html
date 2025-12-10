@@ -4,11 +4,17 @@
   <meta charset="utf-8">
   <title>Shrimp Water ML Project</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 <body>
-  <h1>Xin chào </h1>
-  <p>Hệ thống AI hỗ trợ đánh giá nước nuôi tôm Cà Mau.</p>
-  <a href="/predictdata"> Vào trang dự đoán</a>
+  <div class="container">
+    <h1>Nuôi tôm thông minh</h1>
+    <p class="subtitle">
+      Xin chào mọi người đã đến với hệ thống nuôi tôm thông minh
+    </p>
+
+    <button onclick="window.location.href='/predictdata'">
+      Tiếp tục
+    </button>
+  </div>
 </body>
 </html>

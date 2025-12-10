@@ -1,6 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass
+import math
 
 import numpy as np
 import pandas as pd
@@ -34,20 +35,26 @@ class DataTransformation:
 
         self.categorical_features = ["DIEM_QUAN_TRAC", "XA", "HUYEN"]
 
+    # CHUẨN HOÁ LABEL VIBRIO THEO ln
 
     @staticmethod
-    def label_vibrio_risk(v):
-        if v < 4:
+    def label_vibrio_risk_ln(v_ln):
+        t1 = 4 * math.log(10)    # ≈ 9.21
+        t2 = 6 * math.log(10)    # ≈ 13.82
+
+        if v_ln < t1:
             return 0
-        elif v < 6:
+        elif v_ln < t2:
             return 1
         else:
             return 2
 
     def add_labels(self, df: pd.DataFrame):
 
-        df["LABEL_VIBRIO_RISK"] = df["VIBRIO_LOG"].apply(self.label_vibrio_risk)
+        #  TASK 1: NGUY CƠ VIBRIO (DÙNG ln) 
+        df["LABEL_VIBRIO_RISK"] = df["VIBRIO_LOG"].apply(self.label_vibrio_risk_ln)
 
+        #  TASK 3: MÔI TRƯỜNG AO TÔM (0 / 1) 
         df["LABEL_MOI_TRUONG_TOM"] = (
             (df["NHIET_DO"].between(26, 30)) &
             (df["PH"].between(7.5, 8.5)) &
@@ -57,6 +64,7 @@ class DataTransformation:
             (df["NH4"] <= 0.3)
         ).astype(int)
 
+        #  TASK 4: ĐIỀU KIỆN TẢO (0 / 1) 
         df["LABEL_TAO_THUC_AN"] = (
             (df["DO_TRONG"].between(25, 40)) &
             (df["PO43"].between(0.03, 0.5)) &
@@ -65,8 +73,8 @@ class DataTransformation:
 
         return df
 
-
     def get_preprocessor(self):
+
         num_pipeline = Pipeline([
             ("imputer", SimpleImputer(strategy="median")),
             ("scaler", StandardScaler())
@@ -84,7 +92,6 @@ class DataTransformation:
         ])
 
         return preprocessor
-
 
     def initiate_data_transformation(self, train_path, test_path):
         try:
@@ -108,6 +115,7 @@ class DataTransformation:
 
             data_dict = {}
 
+            # TASK 1: PHÂN LOẠI NGUY CƠ VIBRIO 
             data_dict["task1"] = (
                 X_train_arr,
                 train_df["LABEL_VIBRIO_RISK"].values,
@@ -115,6 +123,7 @@ class DataTransformation:
                 test_df["LABEL_VIBRIO_RISK"].values,
             )
 
+            # TASK 2: HỒI QUY ln(CFU) 
             data_dict["task2"] = (
                 X_train_arr,
                 train_df["VIBRIO_LOG"].values,
@@ -122,6 +131,7 @@ class DataTransformation:
                 test_df["VIBRIO_LOG"].values,
             )
 
+            #  TASK 3: CHẤT LƯỢNG AO 
             data_dict["task3"] = (
                 X_train_arr,
                 train_df["LABEL_MOI_TRUONG_TOM"].values,
@@ -129,6 +139,7 @@ class DataTransformation:
                 test_df["LABEL_MOI_TRUONG_TOM"].values,
             )
 
+            #  TASK 4: ĐIỀU KIỆN TẢO 
             data_dict["task4"] = (
                 X_train_arr,
                 train_df["LABEL_TAO_THUC_AN"].values,

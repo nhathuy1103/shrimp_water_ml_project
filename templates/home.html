@@ -9,7 +9,7 @@
 
   <div class="container">
 
-    <h1>Hệ thống hỗ trợ nuôi tôm – ShrimpGPT</h1>
+    <h1>Hệ thống hỗ trợ nuôi tôm – Shrimp</h1>
     <p class="subtitle">Nhập dữ liệu quan trắc nước để dự đoán rủi ro bệnh và mức độ phù hợp môi trường.</p>
 
     <form method="POST" action="/predictdata">
@@ -109,14 +109,14 @@
       <hr>
       <h2>Kết quả dự đoán</h2>
       <div class="result-box">
-        <p><b>Nguy cơ bệnh Vibrio:</b> {{ results.task1_text }} (label = {{ results.task1_label }})</p>
-        <p><b>Vibrio tổng số ước lượng:</b> ≈ {{ results.task2_vibrio_est }} CFU/ml (log₁₀ = {{ results.task2_vibrio_log }})</p>
-        <p><b>Mức độ phù hợp môi trường tôm:</b> {{ results.task3_text }} (label = {{ results.task3_label }})</p>
-        <p><b>Điều kiện tảo thức ăn:</b> {{ results.task4_text }} (label = {{ results.task4_label }})</p>
+        <p><b>Nguy cơ bệnh Vibrio:</b> {{ results.task1_text }} </p>
+        <p><b>Vibrio tổng số ước lượng:</b> ≈ {{ results.task2_vibrio_est }} CFU/ml </p>
+        <p><b>Mức độ phù hợp môi trường tôm:</b> {{ results.task3_text }} </p>
+        <p><b>Điều kiện tảo thức ăn:</b> {{ results.task4_text }} </p>
       </div>
     {% endif %}
 
-    <p class="back-link"><a href="/">⬅ Về trang chủ</a></p>
+    <p class="back-link"><a href="/"> Về trang chủ</a></p>
 
   </div> 
 

@@ -11,10 +11,10 @@ from src.utils import load_object
 class PredictionPipeline:
     """
     Pipeline dự đoán cho 4 bài toán:
-      - task1: LABEL_VIBRIO_RISK        (0 = an toàn, 1 = cảnh báo, 2 = nguy cơ cao)
+      - task1: LABEL_VIBRIO_RISK        (0 = an toàn, 1 = nguy cơ)
       - task2: VIBRIO_LOG               (log10(Vibrio tổng số dự báo)
-      - task3: LABEL_MOI_TRUONG_TOM     (0 = xấu, 1 = trung bình, 2 = tốt)
-      - task4: LABEL_TAO_THUC_AN        (0 = kém, 1 = trung bình, 2 = tốt)
+      - task3: LABEL_MOI_TRUONG_TOM     (0 = không đạt, 1 = đạt)
+      - task4: LABEL_TAO_THUC_AN        (0 = kém, 1 = tốt)
     """
 
     def __init__(self):
@@ -37,44 +37,42 @@ class PredictionPipeline:
             raise CustomException(e, sys)
 
     def predict(self, input_df: pd.DataFrame) -> dict:
-        """
-        input_df: DataFrame 1 hoặc nhiều dòng với các cột:
-          DIEM_QUAN_TRAC, XA, HUYEN,
-          NHIET_DO, PH, DO, DO_MAN, DO_TRONG, DO_KIEM,
-          NO2, NO3, NH4, PO43, COD,
-          NAM, THANG, NGAY
-
-        Trả về dict gồm 4 kết quả cho từng bài toán.
-        """
         try:
             logging.info("Starting prediction for %d rows", input_df.shape[0])
 
-            # transform
             X_scaled = self.preprocessor.transform(input_df)
 
-            # dự đoán
             y1 = self.model_task1.predict(X_scaled)
             y2 = self.model_task2.predict(X_scaled)
             y3 = self.model_task3.predict(X_scaled)
             y4 = self.model_task4.predict(X_scaled)
 
-            # Lấy dòng đầu tiên (vì web form thường 1 dòng)
             y1_val = int(y1[0])
             y2_val = float(y2[0])
             y3_val = int(y3[0])
             y4_val = int(y4[0])
 
-            # Mapping sang text cho dễ hiểu
-            risk_map = {0: "An toàn", 1: "Cảnh báo", 2: "Nguy cơ cao"}
-            env_map = {0: "Môi trường xấu", 1: "Môi trường trung bình", 2: "Môi trường tốt"}
-            algae_map = {0: "Điều kiện tảo kém", 1: "Điều kiện tảo trung bình", 2: "Điều kiện tảo tốt"}
+            risk_map = {
+                0: "An toàn",
+                1: "Nguy cơ"
+            }
+
+            env_map = {
+                0: "Môi trường không đạt",
+                1: "Môi trường đạt"
+            }
+
+            algae_map = {
+                0: "Điều kiện tảo kém",
+                1: "Điều kiện tảo tốt"
+            }
 
             result = {
                 "task1_label": y1_val,
                 "task1_text": risk_map.get(y1_val, "Không xác định"),
 
                 "task2_vibrio_log": round(y2_val, 3),
-                "task2_vibrio_est": float(np.round(10 ** y2_val, 2)),  # ước lượng lại CFU/ml
+                "task2_vibrio_est": float(np.round(10 ** y2_val, 2)),
 
                 "task3_label": y3_val,
                 "task3_text": env_map.get(y3_val, "Không xác định"),
@@ -90,11 +88,6 @@ class PredictionPipeline:
 
 
 class CustomData:
-    """
-    Lớp ánh xạ dữ liệu đầu vào (từ form / JSON) thành DataFrame
-    đúng format mà preprocessor đã được train.
-    """
-
     def __init__(
         self,
         diem_quan_trac: str,
