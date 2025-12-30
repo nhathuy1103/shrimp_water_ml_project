@@ -1,0 +1,232 @@
+{# templates/harvest.html #}
+{% extends "base.html" %}
+
+{% block title %}Kết quả thu hoạch{% endblock %}
+
+{% block head_extra %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+  <!-- LEFT -->
+  <div class="left-panel">
+
+    <div class="card form-card">
+      <h1>Kết quả thu hoạch</h1>
+
+      <form method="POST" action="{{ url_for('harvest') }}" autocomplete="off">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Ngày thu hoạch</label>
+            <input type="date" name="harvest_date" value="{{ today }}">
+          </div>
+
+          <div class="form-group">
+            <label>Tôm sú (kg)</label>
+            <input type="number" step="0.1" min="0" name="kg_tom_su">
+          </div>
+
+          <div class="form-group">
+            <label>Cỡ tôm sú (con/kg)</label>
+            <input type="number" step="1" min="1" name="tom_su_size">
+          </div>
+
+          <div class="form-group">
+            <label>Tôm thẻ (kg)</label>
+            <input type="number" step="0.1" min="0" name="kg_tom_the">
+          </div>
+
+          <div class="form-group">
+            <label>Tôm bạc (kg)</label>
+            <input type="number" step="0.1" min="0" name="kg_tom_bac">
+          </div>
+
+          <div class="form-group">
+            <label>Ghi chú</label>
+            <input type="text" name="note" placeholder="VD: thời tiết, bệnh, giá bán...">
+          </div>
+        </div>
+
+        <button class="primary-btn" type="submit">Lưu</button>
+      </form>
+    </div>
+
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Lịch sử</h2>
+        <span class="pill">{{ (rows|length) if rows is defined else 0 }} dòng</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+          <tr>
+            <th>Ngày</th>
+            <th>Tôm sú</th>
+            <th>Cỡ</th>
+            <th>Tôm thẻ</th>
+            <th>Tôm bạc</th>
+            <th>Ghi chú</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% if rows %}
+            {% for r in rows %}
+              <tr>
+                <td>{{ r.harvest_date }}</td>
+                <td>{{ "%.1f"|format(r.kg_tom_su or 0) }}</td>
+                <td>{{ r.tom_su_size or "" }}</td>
+                <td>{{ "%.1f"|format(r.kg_tom_the or 0) }}</td>
+                <td>{{ "%.1f"|format(r.kg_tom_bac or 0) }}</td>
+                <td>{{ r.note or "" }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="muted">Chưa có dữ liệu thu hoạch.</td>
+            </tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="small-note muted">
+        * Gợi ý: nếu không có “Tôm sú”, hệ thống sẽ tự bỏ “Cỡ” để tránh sai dữ liệu.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="card dashboard-card">
+      <div class="card-head">
+        <h2>Dashboard</h2>
+
+        <div>
+          <div class="filter-row">
+            <button class="chip active" data-days="30">30 ngày</button>
+            <button class="chip" data-days="7">7 ngày</button>
+            <button class="chip" data-days="90">90 ngày</button>
+            <button class="chip" data-days="365">365 ngày</button>
+          </div>
+
+          <div class="filter-row" style="margin-top:6px">
+            <button class="chip chip-group active" data-group="day">Theo ngày</button>
+            <button class="chip chip-group" data-group="month">Theo tháng</button>
+            <button class="chip chip-group" data-group="year">Theo năm</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-scroll">
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-title">Tôm sú</div><div class="kpi-value" id="kpi-su">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tôm thẻ</div><div class="kpi-value" id="kpi-the">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tôm bạc</div><div class="kpi-value" id="kpi-bac">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tổng</div><div class="kpi-value" id="kpi-all">0</div></div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-box"><canvas id="lineChart"></canvas></div>
+          <div class="chart-box"><canvas id="pieChart"></canvas></div>
+        </div>
+
+        <div class="chart-grid size-grid">
+          <div class="chart-box size-kpi-box">
+            <div class="kpi-title">TB cỡ tôm sú</div>
+            <div class="kpi-value" id="kpi-su-size">—</div>
+            <div class="muted" style="margin-top:6px;">(con/kg)</div>
+          </div>
+
+          <div class="chart-box size-chart-box">
+            <canvas id="sizeLineChart" class="size-chart-canvas"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDays = 30;
+let currentGroup = "day";
+let lineChart, pieChart, sizeLineChart;
+
+function setActive(selector, clickedBtn){
+  document.querySelectorAll(selector).forEach(b => b.classList.remove("active"));
+  clickedBtn.classList.add("active");
+}
+
+function loadSummary(days = currentDays, group = currentGroup) {
+  currentDays = days;
+  currentGroup = group;
+
+  fetch(`/api/harvest/summary?days=${days}&group=${group}`)
+    .then(r => r.json())
+    .then(data => {
+      const labels = data.labels || [];
+      const su = data.series?.tom_su || [];
+      const the = data.series?.tom_the || [];
+      const bac = data.series?.tom_bac || [];
+      const size = data.series?.tom_su_size || [];
+
+      document.getElementById("kpi-su").textContent = Number(data.totals.tom_su || 0).toFixed(1);
+      document.getElementById("kpi-the").textContent = Number(data.totals.tom_the || 0).toFixed(1);
+      document.getElementById("kpi-bac").textContent = Number(data.totals.tom_bac || 0).toFixed(1);
+      document.getElementById("kpi-all").textContent = Number(data.totals.all || 0).toFixed(1);
+
+      document.getElementById("kpi-su-size").textContent =
+        (data.stats?.avg_tom_su_size !== null && data.stats?.avg_tom_su_size !== undefined)
+          ? Number(data.stats.avg_tom_su_size).toFixed(1)
+          : "—";
+
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(document.getElementById("lineChart"), {
+        type: "line",
+        data: { labels, datasets: [
+          { label: "Tôm sú", data: su, tension: 0.3 },
+          { label: "Tôm thẻ", data: the, tension: 0.3 },
+          { label: "Tôm bạc", data: bac, tension: 0.3 }
+        ]},
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      if (sizeLineChart) sizeLineChart.destroy();
+      sizeLineChart = new Chart(document.getElementById("sizeLineChart"), {
+        type: "line",
+        data: { labels, datasets: [{ label: "Cỡ tôm sú (con/kg)", data: size, spanGaps: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(document.getElementById("pieChart"), {
+        type: "doughnut",
+        data: {
+          labels: ["Tôm sú", "Tôm thẻ", "Tôm bạc"],
+          datasets: [{ data: [Number(data.totals.tom_su||0), Number(data.totals.tom_the||0), Number(data.totals.tom_bac||0)] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    });
+}
+
+document.querySelectorAll(".chip[data-days]").forEach(b => {
+  b.addEventListener("click", () => {
+    setActive(".chip[data-days]", b);
+    loadSummary(+b.dataset.days, currentGroup);
+  });
+});
+
+document.querySelectorAll(".chip-group").forEach(b => {
+  b.addEventListener("click", () => {
+    setActive(".chip-group", b);
+    loadSummary(currentDays, b.dataset.group);
+  });
+});
+
+loadSummary();
+</script>
+{% endblock %}

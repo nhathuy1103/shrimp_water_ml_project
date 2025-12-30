@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Đăng nhập</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+</head>
+<body>
+
+  <div class="auth-card">
+    <h2>Đăng nhập</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('login') }}" autocomplete="off">
+      <label for="username">Tên đăng nhập</label>
+      <input id="username" name="username" required>
+
+      <label for="password">Mật khẩu</label>
+      <input id="password" name="password" type="password" required>
+
+      <button type="submit">Đăng nhập</button>
+    </form>
+
+    <div class="hint">
+      Chưa có tài khoản?
+      <a href="{{ url_for('register') }}">Đăng ký</a>
+    </div>
+  </div>
+
+</body>
+</html>

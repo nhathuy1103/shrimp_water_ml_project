@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Dữ liệu quan sinh trắc{% endblock %}
+
+{% block head_extra %}
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+  <!-- LEFT: FILTER + CHART -->
+  <div class="left-panel">
+
+    <div class="card dashboard-card bioobs-card">
+      <div class="card-head">
+        <div>
+          <h1>Dữ liệu quan sinh trắc</h1>
+          <p class="subtitle">Tổng hợp trung bình theo <b>Xã</b> hoặc <b>Huyện</b> và so sánh các chỉ tiêu.</p>
+        </div>
+        <span class="pill">Cán bộ</span>
+      </div>
+
+      <div class="dash-scroll">
+
+        <!-- FILTERS -->
+        <div class="bioobs-filters">
+          <div class="filter-row">
+            <button type="button" class="chip active" data-group="huyen">Theo huyện</button>
+            <button type="button" class="chip" data-group="xa">Theo xã</button>
+          </div>
+
+          <div class="bioobs-formrow">
+            <div class="form-group">
+              <label>Chỉ tiêu</label>
+              <select id="metric">
+                <option value="ph">pH</option>
+                <option value="nhiet_do">Nhiệt độ</option>
+                <option value="do">DO</option>
+                <option value="do_man">Độ mặn</option>
+                <option value="do_trong">Độ trong</option>
+                <option value="do_kiem">Độ kiềm</option>
+                <option value="no2">NO2</option>
+                <option value="no3">NO3</option>
+                <option value="nh4">NH4</option>
+                <option value="po43">PO43</option>
+                <option value="cod">COD</option>
+                <option value="vibrio">Vibrio (ước tính)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Khoảng thời gian</label>
+              <select id="days">
+                <option value="7">7 ngày</option>
+                <option value="30" selected>30 ngày</option>
+                <option value="90">90 ngày</option>
+                <option value="365">365 ngày</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button type="button" class="ghost-btn" id="btnReload">Tải dữ liệu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-grid bioobs-kpi">
+          <div class="kpi">
+            <div class="kpi-title">Số nhóm</div>
+            <div class="kpi-value" id="kpiGroups">0</div>
+            <div class="kpi-sub" id="kpiGroupLabel">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-title">Số mẫu</div>
+            <div class="kpi-value" id="kpiSamples">0</div>
+            <div class="kpi-sub">Tổng bản ghi</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-title">Trung bình chỉ tiêu</div>
+            <div class="kpi-value" id="kpiAvg">—</div>
+            <div class="kpi-sub" id="kpiMetric">—</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-title">Nhóm cao nhất</div>
+            <div class="kpi-value" id="kpiTop">—</div>
+            <div class="kpi-sub" id="kpiTopVal">—</div>
+          </div>
+        </div>
+
+        <!-- CHART -->
+        <div class="card chart-box bioobs-chartbox">
+          <canvas id="bioChart"></canvas>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: TABLE -->
+  <div class="right-panel">
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Bảng tổng hợp (trung bình)</h2>
+        <span class="pill" id="tablePill">—</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="bioTable">
+          <thead>
+            <tr>
+              <th>Nhóm</th>
+              <th>Số mẫu</th>
+              <th>Nhiệt độ</th>
+              <th>pH</th>
+              <th>DO</th>
+              <th>Độ mặn</th>
+              <th>Độ trong</th>
+              <th>Độ kiềm</th>
+              <th>NO2</th>
+              <th>NO3</th>
+              <th>NH4</th>
+              <th>PO43</th>
+              <th>COD</th>
+              <th>Vibrio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="14" class="muted">Chưa có dữ liệu. Bấm “Tải dữ liệu”.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="small-note muted">
+        Bảng đang lấy trung bình theo nhóm (xã/huyện) trong khoảng thời gian bạn chọn.
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const elMetric = document.getElementById("metric");
+  const elDays = document.getElementById("days");
+  const btnReload = document.getElementById("btnReload");
+  const chips = Array.from(document.querySelectorAll(".chip[data-group]"));
+  const tablePill = document.getElementById("tablePill");
+
+  const kpiGroups = document.getElementById("kpiGroups");
+  const kpiGroupLabel = document.getElementById("kpiGroupLabel");
+  const kpiSamples = document.getElementById("kpiSamples");
+  const kpiAvg = document.getElementById("kpiAvg");
+  const kpiMetric = document.getElementById("kpiMetric");
+  const kpiTop = document.getElementById("kpiTop");
+  const kpiTopVal = document.getElementById("kpiTopVal");
+
+  let currentGroup = "huyen";
+  let chart = null;
+
+  const metricLabelMap = {
+    "nhiet_do": "Nhiệt độ",
+    "ph": "pH",
+    "do": "DO",
+    "do_man": "Độ mặn",
+    "do_trong": "Độ trong",
+    "do_kiem": "Độ kiềm",
+    "no2": "NO2",
+    "no3": "NO3",
+    "nh4": "NH4",
+    "po43": "PO43",
+    "cod": "COD",
+    "vibrio": "Vibrio (ước tính)",
+  };
+
+  function fmt(x) {
+    if (x === null || x === undefined) return "—";
+    if (typeof x !== "number") return x;
+    const v = Number(x);
+    if (!isFinite(v)) return "—";
+    return (Math.round(v * 100) / 100).toString();
+  }
+
+  function setActiveGroup(group) {
+    currentGroup = group;
+    chips.forEach(c => c.classList.toggle("active", c.dataset.group === group));
+    tablePill.textContent = group === "xa" ? "Theo xã" : "Theo huyện";
+  }
+
+  async function loadData() {
+    const metric = elMetric.value;
+    const days = elDays.value;
+
+    tablePill.textContent =
+      (currentGroup === "xa" ? "Theo xã" : "Theo huyện")
+      + ` • ${days} ngày • ${metricLabelMap[metric] || metric}`;
+
+    btnReload.disabled = true;
+    btnReload.textContent = "Đang tải...";
+
+    try {
+      const url = `/api/bio-obs/summary?group=${encodeURIComponent(currentGroup)}&metric=${encodeURIComponent(metric)}&days=${encodeURIComponent(days)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.ok) throw new Error("API error");
+
+      renderTable(data.table || explained);
+      renderChart(data.labels || [], data.values || [], metric);
+      renderKPI(data.table || [], metric);
+
+    } catch (e) {
+      renderTable([]);
+      renderChart([], [], elMetric.value);
+      kpiGroups.textContent = "0";
+      kpiSamples.textContent = "0";
+      kpiAvg.textContent = "—";
+      kpiTop.textContent = "—";
+      kpiTopVal.textContent = "—";
+    } finally {
+      btnReload.disabled = false;
+      btnReload.textContent = "Tải dữ liệu";
+    }
+  }
+
+  function renderKPI(rows, metric) {
+    const groups = rows.length;
+    const samples = rows.reduce((s, r) => s + (r.n || 0), 0);
+
+    const vals = rows
+      .map(r => {
+        if (metric === "vibrio") return r.avg_vibrio;
+        const k = "avg_" + metric;
+        return r[k];
+      })
+      .filter(v => v !== null && v !== undefined && isFinite(v));
+
+    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length) : null;
+
+    let topName = "—", topVal = null;
+    if (rows.length) {
+      let best = null;
+      for (const r of rows) {
+        const v = (metric === "vibrio") ? r.avg_vibrio : r["avg_" + metric];
+        if (v === null || v === undefined || !isFinite(v)) continue;
+        if (!best || v > best.v) best = { name: r.key, v: v };
+      }
+      if (best) { topName = best.name; topVal = best.v; }
+    }
+
+    kpiGroups.textContent = groups.toString();
+    kpiGroupLabel.textContent = currentGroup === "xa" ? "Số xã có dữ liệu" : "Số huyện có dữ liệu";
+    kpiSamples.textContent = samples.toString();
+    kpiAvg.textContent = fmt(avg);
+    kpiMetric.textContent = metricLabelMap[metric] || metric;
+    kpiTop.textContent = topName;
+    kpiTopVal.textContent = topVal === null ? "—" : `${fmt(topVal)} (${metricLabelMap[metric] || metric})`;
+  }
+
+  function renderTable(rows) {
+    const tbody = document.querySelector("#bioTable tbody");
+    tbody.innerHTML = "";
+
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="14" class="muted">Không có dữ liệu trong khoảng thời gian này.</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${r.key || "—"}</b></td>
+        <td>${r.n ?? 0}</td>
+        <td>${fmt(r.avg_nhiet_do)}</td>
+        <td>${fmt(r.avg_ph)}</td>
+        <td>${fmt(r.avg_do)}</td>
+        <td>${fmt(r.avg_do_man)}</td>
+        <td>${fmt(r.avg_do_trong)}</td>
+        <td>${fmt(r.avg_do_kiem)}</td>
+        <td>${fmt(r.avg_no2)}</td>
+        <td>${fmt(r.avg_no3)}</td>
+        <td>${fmt(r.avg_nh4)}</td>
+        <td>${fmt(r.avg_po43)}</td>
+        <td>${fmt(r.avg_cod)}</td>
+        <td>${fmt(r.avg_vibrio)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderChart(labels, values, metric) {
+    const ctx = document.getElementById("bioChart");
+
+    if (chart) chart.destroy();
+
+    const safeLabels = labels.length ? labels : ["—"];
+    const safeValues = values.length ? values.map(v => v ?? null) : [null];
+
+    chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: safeLabels,
+        datasets: [{
+          label: `So sánh ${metricLabelMap[metric] || metric} theo ${currentGroup === "xa" ? "xã" : "huyện"}`,
+          data: safeValues,
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { maxRotation: 45, minRotation: 0 } },
+          y: { beginAtZero: false }
+        },
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${fmt(ctx.parsed.y)}`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  chips.forEach(c => c.addEventListener("click", () => {
+    setActiveGroup(c.dataset.group);
+    loadData();
+  }));
+
+  btnReload.addEventListener("click", loadData);
+  elMetric.addEventListener("change", loadData);
+  elDays.addEventListener("change", loadData);
+
+  setActiveGroup("huyen");
+  loadData();
+</script>
+{% endblock %}

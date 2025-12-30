@@ -1,0 +1,66 @@
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-logo">🦐</div>
+      <div class="brand-name">Shrimp</div>
+    </div>
+
+    <div class="sidebar-group-title"></div>
+
+    <a class="nav-item {{ 'active' if request.endpoint=='predict_datapoint' else '' }}"
+       href="{{ url_for('predict_datapoint') }}">
+      <span class="txt">Nhập dữ liệu</span>
+    </a>
+
+    <a class="nav-item {{ 'active' if request.endpoint=='harvest' else '' }}"
+       href="{{ url_for('harvest') }}">
+      <span class="txt">Kết quả thu hoạch</span>
+    </a>
+
+    {% set _role = session.get("vai_tro") %}
+    {% set _ok = session.get("ma_can_bo_hop_le") %}
+    {% if _role == "officer" and _ok %}
+      <div class="sidebar-group-title">Giám sát</div>
+
+      <a class="nav-item {{ 'active' if request.endpoint=='bio_obs' else '' }}"
+         href="{{ url_for('bio_obs') }}">
+        <span class="txt">Dữ liệu quan sinh trắc</span>
+      </a>
+
+      <a class="nav-item {{ 'active' if request.endpoint=='officer_harvest' else '' }}"
+         href="{{ url_for('officer_harvest') }}">
+        <span class="txt">Dashboard thu hoạch</span>
+      </a>
+    {% endif %}
+
+    <div class="sidebar-group-title">Tài khoản</div>
+
+    <a class="nav-item {{ 'active' if request.endpoint=='profile' else '' }}"
+       href="{{ url_for('profile') }}">
+      <span class="txt">Cập nhật thông tin</span>
+    </a>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-user">
+      {% set _uname = session.get("username") or "U" %}
+      <div class="avatar">{{ (_uname[:1] or "U")|upper }}</div>
+
+      <div class="uinfo">
+        <div class="uname">
+          {{ session.get("biet_danh") or _uname or "Người dùng" }}
+        </div>
+        <div class="usub">
+          {{ session.get("tinh") or "" }}
+          {% if session.get("huyen") %} · {{ session.get("huyen") }}{% endif %}
+          {% if session.get("xa") %} · {{ session.get("xa") }}{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <a class="nav-item danger" href="{{ url_for('logout') }}">
+      <span class="ico"></span>
+      <span class="txt">Đăng xuất</span>
+    </a>
+  </div>
+</aside>

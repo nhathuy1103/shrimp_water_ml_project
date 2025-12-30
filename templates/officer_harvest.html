@@ -1,0 +1,337 @@
+{# templates/officer_harvest.html #}
+{% extends "base.html" %}
+{% block title %}Dashboard thu hoạch (Cán bộ){% endblock %}
+
+{% block head_extra %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+  <!-- LEFT -->
+  <div class="left-panel">
+
+    <!-- FORM/FILTER -->
+    <div class="card form-card">
+      <h1>Dashboard thu hoạch (Cán bộ)</h1>
+      <p class="subtitle">Xem tổng sản lượng theo ngày/tháng/năm và theo khu vực (huyện/xã).</p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Xem theo</label>
+          <select id="areaSelect">
+            <option value="huyen" selected>Theo huyện</option>
+            <option value="xa">Theo xã</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Khu vực (Huyện)</label>
+          <select id="districtSelect">
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="communeGroup" style="display:none;">
+          <label>Khu vực (Xã)</label>
+          <select id="communeSelect" disabled>
+            <option value="">Tất cả</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Phân nhóm thời gian</label>
+          <select id="groupSelect">
+            <option value="day">Theo ngày</option>
+            <option value="month">Theo tháng</option>
+            <option value="year">Theo năm</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Khoảng thời gian</label>
+          <select id="daysSelect">
+            <option value="7">7 ngày</option>
+            <option value="30" selected>30 ngày</option>
+            <option value="90">90 ngày</option>
+            <option value="365">365 ngày</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE (giống “Lịch sử” bên harvest) -->
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Chi tiết theo khu vực</h2>
+        <span class="pill" id="rowsCount">0 dòng</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Khu vực</th>
+              <th>Tôm sú</th>
+              <th>Tôm thẻ</th>
+              <th>Tôm bạc</th>
+              <th>Tổng</th>
+            </tr>
+          </thead>
+          <tbody id="areaTbody">
+            <tr><td colspan="5" class="muted">Chưa có dữ liệu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="small-note muted">
+        * Bảng đang hiển thị tổng theo khu vực dựa trên bộ lọc bạn chọn.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="card dashboard-card">
+      <div class="card-head">
+        <h2>Dashboard</h2>
+
+        <!-- CHIP FILTER giống harvest.html -->
+        <div>
+          <div class="filter-row">
+            <button class="chip" data-days="30">30 ngày</button>
+            <button class="chip" data-days="7">7 ngày</button>
+            <button class="chip" data-days="90">90 ngày</button>
+            <button class="chip" data-days="365">365 ngày</button>
+          </div>
+
+          <div class="filter-row" style="margin-top:6px">
+            <button class="chip chip-group" data-group="day">Theo ngày</button>
+            <button class="chip chip-group" data-group="month">Theo tháng</button>
+            <button class="chip chip-group" data-group="year">Theo năm</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-scroll">
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-title">Tôm sú</div><div class="kpi-value" id="kpi-su">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tôm thẻ</div><div class="kpi-value" id="kpi-the">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tôm bạc</div><div class="kpi-value" id="kpi-bac">0</div></div>
+          <div class="kpi"><div class="kpi-title">Tổng</div><div class="kpi-value" id="kpi-all">0</div></div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-box"><canvas id="lineChart"></canvas></div>
+          <div class="chart-box"><canvas id="pieChart"></canvas></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let lineChart, pieChart;
+
+// state giống harvest.html
+let currentDays = 30;
+let currentGroup = "day";
+
+// elements
+const elArea = document.getElementById("areaSelect");
+const elDistrict = document.getElementById("districtSelect");
+const elCommuneGroup = document.getElementById("communeGroup");
+const elCommune = document.getElementById("communeSelect");
+const elDaysSelect = document.getElementById("daysSelect");
+const elGroupSelect = document.getElementById("groupSelect");
+
+function fmt(x){ return Number(x||0).toFixed(1); }
+
+function setActive(selector, clickedBtn){
+  document.querySelectorAll(selector).forEach(b => b.classList.remove("active"));
+  clickedBtn.classList.add("active");
+}
+
+function syncChipsFromSelects(){
+  // days chips
+  document.querySelectorAll(".chip[data-days]").forEach(b=>{
+    b.classList.toggle("active", Number(b.dataset.days) === Number(currentDays));
+  });
+  // group chips
+  document.querySelectorAll(".chip-group").forEach(b=>{
+    b.classList.toggle("active", b.dataset.group === currentGroup);
+  });
+}
+
+function buildRow(r){
+  return `
+    <tr>
+      <td>${r.key}</td>
+      <td>${fmt(r.tom_su)}</td>
+      <td>${fmt(r.tom_the)}</td>
+      <td>${fmt(r.tom_bac)}</td>
+      <td><b>${fmt(r.all)}</b></td>
+    </tr>
+  `;
+}
+
+async function loadDistricts(){
+  const res = await fetch("/api/officer/areas/districts");
+  const data = await res.json();
+  const districts = data.districts || [];
+  elDistrict.innerHTML = `<option value="">Tất cả</option>` + districts.map(d => `<option value="${d}">${d}</option>`).join("");
+}
+
+async function loadCommunesByDistrict(district){
+  elCommune.disabled = true;
+  elCommune.innerHTML = `<option value="">Tất cả</option>`;
+
+  if (!district){
+    elCommune.disabled = true;
+    return;
+  }
+
+  const url = `/api/officer/areas/communes?district=${encodeURIComponent(district)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const communes = data.communes || [];
+
+  elCommune.innerHTML = `<option value="">Tất cả</option>` + communes.map(x => `<option value="${x}">${x}</option>`).join("");
+  elCommune.disabled = false;
+}
+
+function toggleCommuneUI(){
+  const area = elArea.value;
+  if (area === "xa"){
+    elCommuneGroup.style.display = "block";
+  } else {
+    elCommuneGroup.style.display = "none";
+    elCommune.value = "";
+  }
+}
+
+async function loadOfficerHarvest(){
+  // lấy từ select (để đồng bộ chip + select)
+  currentDays = Number(elDaysSelect.value);
+  currentGroup = elGroupSelect.value;
+  syncChipsFromSelects();
+
+  const area = elArea.value;              // huyen | xa
+  const district = elDistrict.value;      // optional
+  const commune = elCommune.value;        // optional
+
+  const districtsParam = district ? encodeURIComponent(district) : "";
+  const communeParam = (area === "xa" && commune) ? encodeURIComponent(commune) : "";
+
+  let url = `/api/officer/harvest/summary?days=${currentDays}&group=${currentGroup}&area=${area}&districts=${districtsParam}`;
+  if (communeParam){
+    url += `&commune=${communeParam}`;
+  }
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  // KPI
+  document.getElementById("kpi-su").textContent = fmt(data.totals?.tom_su);
+  document.getElementById("kpi-the").textContent = fmt(data.totals?.tom_the);
+  document.getElementById("kpi-bac").textContent = fmt(data.totals?.tom_bac);
+  document.getElementById("kpi-all").textContent = fmt(data.totals?.all);
+
+  // chart series
+  const labels = data.labels || [];
+  const su = data.series?.tom_su || [];
+  const the = data.series?.tom_the || [];
+  const bac = data.series?.tom_bac || [];
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById("lineChart"), {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Tôm sú", data: su, tension: 0.3 },
+      { label: "Tôm thẻ", data: the, tension: 0.3 },
+      { label: "Tôm bạc", data: bac, tension: 0.3 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById("pieChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Tôm sú", "Tôm thẻ", "Tôm bạc"],
+      datasets: [{
+        data: [
+          Number(data.totals?.tom_su || 0),
+          Number(data.totals?.tom_the || 0),
+          Number(data.totals?.tom_bac || 0)
+        ]
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // table
+  const tbody = document.getElementById("areaTbody");
+  const rows = data.by_area || [];
+  document.getElementById("rowsCount").textContent = `${rows.length} dòng`;
+
+  tbody.innerHTML = rows.length
+    ? rows.map(buildRow).join("")
+    : `<tr><td colspan="5" class="muted">Chưa có dữ liệu.</td></tr>`;
+}
+
+/* ==== CHIP HANDLERS (giống harvest.html) ==== */
+document.querySelectorAll(".chip[data-days]").forEach(b => {
+  b.addEventListener("click", async () => {
+    setActive(".chip[data-days]", b);
+    elDaysSelect.value = b.dataset.days;
+    await loadOfficerHarvest();
+  });
+});
+
+document.querySelectorAll(".chip-group").forEach(b => {
+  b.addEventListener("click", async () => {
+    setActive(".chip-group", b);
+    elGroupSelect.value = b.dataset.group;
+    await loadOfficerHarvest();
+  });
+});
+
+/* ==== SELECT HANDLERS ==== */
+elDaysSelect.addEventListener("change", loadOfficerHarvest);
+elGroupSelect.addEventListener("change", loadOfficerHarvest);
+
+elDistrict.addEventListener("change", async () => {
+  await loadCommunesByDistrict(elDistrict.value);
+  await loadOfficerHarvest();
+});
+
+elCommune.addEventListener("change", loadOfficerHarvest);
+
+elArea.addEventListener("change", async () => {
+  toggleCommuneUI();
+  if (elArea.value === "xa"){
+    await loadCommunesByDistrict(elDistrict.value);
+  } else {
+    elCommune.value = "";
+  }
+  await loadOfficerHarvest();
+});
+
+/* ==== INIT ==== */
+(async function init(){
+  // set default actives like harvest.html
+  document.querySelector('.chip[data-days="30"]')?.classList.add("active");
+  document.querySelector('.chip-group[data-group="day"]')?.classList.add("active");
+
+  await loadDistricts();
+  toggleCommuneUI();
+  await loadOfficerHarvest();
+})();
+</script>
+{% endblock %}

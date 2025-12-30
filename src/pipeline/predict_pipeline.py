@@ -9,13 +9,6 @@ from src.utils import load_object
 
 
 class PredictionPipeline:
-    """
-    Pipeline dự đoán cho 4 bài toán:
-      - task1: LABEL_VIBRIO_RISK        (0 = an toàn, 1 = nguy cơ)
-      - task2: VIBRIO_LOG               (log10(Vibrio tổng số dự báo)
-      - task3: LABEL_MOI_TRUONG_TOM     (0 = không đạt, 1 = đạt)
-      - task4: LABEL_TAO_THUC_AN        (0 = kém, 1 = tốt)
-    """
 
     def __init__(self):
         try:
@@ -72,7 +65,7 @@ class PredictionPipeline:
                 "task1_text": risk_map.get(y1_val, "Không xác định"),
 
                 "task2_vibrio_log": round(y2_val, 3),
-                "task2_vibrio_est": float(np.round(10 ** y2_val, 2)),
+                "task2_vibrio_est": float(np.round(np.exp(y2_val), 2)),
 
                 "task3_label": y3_val,
                 "task3_text": env_map.get(y3_val, "Không xác định"),

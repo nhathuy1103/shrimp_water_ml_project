@@ -1,0 +1,87 @@
+{# templates/profile.html #}
+{% extends "base.html" %}
+{% block title %}Cập nhật thông tin{% endblock %}
+
+{% block content %}
+  <div class="content-wrapper single-col">
+    <div class="left-panel">
+      <div class="card form-card">
+        <h1>Cập nhật thông tin</h1>
+
+        {% if error %}
+          <div class="msg-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('profile') }}" autocomplete="off">
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>Họ và tên</label>
+              <input type="text" name="full_name" value="{{ user.ho_ten or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Số điện thoại</label>
+              <input type="text" name="phone" value="{{ user.so_dien_thoai or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Bí danh</label>
+              <input type="text" name="nickname" value="{{ user.biet_danh or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Tỉnh / Thành phố</label>
+              <input type="text" name="province" value="{{ user.tinh or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Huyện</label>
+              <input type="text" name="district" value="{{ user.huyen or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Xã</label>
+              <input type="text" name="commune" value="{{ user.xa or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Ấp</label>
+              <input type="text" name="hamlet" value="{{ user.ap or '' }}">
+            </div>
+
+            <div class="form-group">
+              <label>Vai trò</label>
+              <select name="role" id="roleSelect">
+                <option value="farmer" {% if user.vai_tro=='farmer' %}selected{% endif %}>Người dân</option>
+                <option value="officer" {% if user.vai_tro=='officer' %}selected{% endif %}>Cán bộ</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="staffCodeGroup" style="display:none;">
+              <label>Mã nhân viên</label>
+              <input type="text" name="staff_code" value="{{ user.ma_can_bo or '' }}">
+            </div>
+
+          </div>
+
+          <button class="primary-btn" type="submit">Lưu cập nhật</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const roleSelect = document.getElementById('roleSelect');
+  const staffCodeGroup = document.getElementById('staffCodeGroup');
+
+  function toggleStaffCode() {
+    staffCodeGroup.style.display = (roleSelect.value === 'officer') ? 'block' : 'none';
+  }
+
+  toggleStaffCode();
+  roleSelect.addEventListener('change', toggleStaffCode);
+</script>
+{% endblock %}

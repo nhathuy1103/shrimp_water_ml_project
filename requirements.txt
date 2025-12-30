@@ -1,10 +1,38 @@
+# ===== Data & ML =====
 pandas
-numpy
-seaborn
-matplotlib
+numpy==1.26.4
 scikit-learn
-catboost
 xgboost
+catboost
+joblib
 dill
+matplotlib
+seaborn
+
+# ===== Web =====
 flask
-#-e .
+streamlit
+flask-sqlalchemy
+python-dotenv
+werkzeug
+bleach
+markdown
+
+# ===== Database =====
+pymysql
+cryptography
+
+# ===== LLM & RAG =====
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-core==0.3.0
+langchain-openai==0.2.0
+langchain-text-splitters==0.3.0
+langchain-chroma
+chromadb
+faiss-cpu
+pypdf
+tavily-python
+lunardate
+apscheduler
+# -e .

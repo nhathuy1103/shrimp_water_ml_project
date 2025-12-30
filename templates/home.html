@@ -1,131 +1,208 @@
-<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <title>Dự đoán chất lượng nước nuôi tôm</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{# templates/predict.html #}
+{% extends "base.html" %}
 
-  <div class="container">
+{% block title %}Dự đoán chất lượng nước nuôi tôm{% endblock %}
 
-    <h1>Hệ thống hỗ trợ nuôi tôm – Shrimp</h1>
-    <p class="subtitle">Nhập dữ liệu quan trắc nước để dự đoán rủi ro bệnh và mức độ phù hợp môi trường.</p>
+{% block content %}
+  <!-- CỘT TRÁI -->
+  <div class="left-panel">
+    <div class="card form-card">
 
-    <form method="POST" action="/predictdata">
-      <div class="form-grid">
+      <h1>Hệ thống hỗ trợ nuôi tôm – Shrimp</h1>
+      <p class="subtitle">
+        Nhập dữ liệu quan trắc nước để dự đoán rủi ro bệnh và mức độ phù hợp môi trường.
+      </p>
 
-        <div class="form-group">
-          <label for="diem_quan_trac">Điểm quan trắc</label>
-          <input type="text" id="diem_quan_trac" name="DIEM_QUAN_TRAC" required>
+      <form method="POST" action="/predictdata" autocomplete="off">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="diem_quan_trac">Điểm quan trắc</label>
+            <input type="text" id="diem_quan_trac" name="DIEM_QUAN_TRAC" required>
+          </div>
+
+          <div class="form-group">
+            <label for="xa">Xã</label>
+            <input type="text" id="xa" name="XA" required>
+          </div>
+
+          <div class="form-group">
+            <label for="huyen">Huyện</label>
+            <input type="text" id="huyen" name="HUYEN" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nhiet_do">Nhiệt độ (°C)</label>
+            <input type="number" step="0.1" id="nhiet_do" name="NHIET_DO" required>
+          </div>
+
+          <div class="form-group">
+            <label for="ph">pH</label>
+            <input type="number" step="0.1" id="ph" name="PH" required>
+          </div>
+
+          <div class="form-group">
+            <label for="do">DO (mg/l)</label>
+            <input type="number" step="0.1" id="do" name="DO" required>
+          </div>
+
+          <div class="form-group">
+            <label for="do_man">Độ mặn (‰)</label>
+            <input type="number" step="0.1" id="do_man" name="DO_MAN" required>
+          </div>
+
+          <div class="form-group">
+            <label for="do_trong">Độ trong (cm)</label>
+            <input type="number" step="0.1" id="do_trong" name="DO_TRONG" required>
+          </div>
+
+          <div class="form-group">
+            <label for="do_kiem">Độ kiềm (mgCaCO₃/l)</label>
+            <input type="number" step="0.1" id="do_kiem" name="DO_KIEM" required>
+          </div>
+
+          <div class="form-group">
+            <label for="no2">N-NO₂⁻ (mg/l)</label>
+            <input type="number" step="0.001" id="no2" name="NO2" required>
+          </div>
+
+          <div class="form-group">
+            <label for="no3">N-NO₃⁻ (mg/l)</label>
+            <input type="number" step="0.001" id="no3" name="NO3" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nh4">N-NH₄⁺ (mg/l)</label>
+            <input type="number" step="0.001" id="nh4" name="NH4" required>
+          </div>
+
+          <div class="form-group">
+            <label for="po43">P-PO₄³⁻ (mg/l)</label>
+            <input type="number" step="0.001" id="po43" name="PO43" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cod">COD (mg/l)</label>
+            <input type="number" step="0.1" id="cod" name="COD" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nam">Năm</label>
+            <input type="number" id="nam" name="NAM" required>
+          </div>
+
+          <div class="form-group">
+            <label for="thang">Tháng</label>
+            <input type="number" id="thang" name="THANG" required>
+          </div>
+
+          <div class="form-group">
+            <label for="ngay">Ngày</label>
+            <input type="number" id="ngay" name="NGAY" required>
+          </div>
+
         </div>
 
-        <div class="form-group">
-          <label for="xa">Xã</label>
-          <input type="text" id="xa" name="XA" required>
-        </div>
+        <button type="submit" class="primary-btn">Dự đoán</button>
+      </form>
 
-        <div class="form-group">
-          <label for="huyen">Huyện</label>
-          <input type="text" id="huyen" name="HUYEN" required>
-        </div>
+    </div>
+  </div>
 
-        <div class="form-group">
-          <label for="nhiet_do">Nhiệt độ (°C)</label>
-          <input type="number" step="0.1" id="nhiet_do" name="NHIET_DO" required>
-        </div>
+  <!-- CỘT PHẢI -->
+  <div class="right-panel">
 
-        <div class="form-group">
-          <label for="ph">pH</label>
-          <input type="number" step="0.1" id="ph" name="PH" required>
-        </div>
-
-        <div class="form-group">
-          <label for="do">DO (mg/l)</label>
-          <input type="number" step="0.1" id="do" name="DO" required>
-        </div>
-
-        <div class="form-group">
-          <label for="do_man">Độ mặn (‰)</label>
-          <input type="number" step="0.1" id="do_man" name="DO_MAN" required>
-        </div>
-
-        <div class="form-group">
-          <label for="do_trong">Độ trong (cm)</label>
-          <input type="number" step="0.1" id="do_trong" name="DO_TRONG" required>
-        </div>
-
-        <div class="form-group">
-          <label for="do_kiem">Độ kiềm (mgCaCO₃/l)</label>
-          <input type="number" step="0.1" id="do_kiem" name="DO_KIEM" required>
-        </div>
-
-        <div class="form-group">
-          <label for="no2">N-NO₂⁻ (mg/l)</label>
-          <input type="number" step="0.001" id="no2" name="NO2" required>
-        </div>
-
-        <div class="form-group">
-          <label for="no3">N-NO₃⁻ (mg/l)</label>
-          <input type="number" step="0.001" id="no3" name="NO3" required>
-        </div>
-
-        <div class="form-group">
-          <label for="nh4">N-NH₄⁺ (mg/l)</label>
-          <input type="number" step="0.001" id="nh4" name="NH4" required>
-        </div>
-
-        <div class="form-group">
-          <label for="po43">P-PO₄³⁻ (mg/l)</label>
-          <input type="number" step="0.001" id="po43" name="PO43" required>
-        </div>
-
-        <div class="form-group">
-          <label for="cod">COD (mg/l)</label>
-          <input type="number" step="0.1" id="cod" name="COD" required>
-        </div>
-
-        <div class="form-group">
-          <label for="nam">Năm</label>
-          <input type="number" id="nam" name="NAM" required>
-        </div>
-
-        <div class="form-group">
-          <label for="thang">Tháng</label>
-          <input type="number" id="thang" name="THANG" required>
-        </div>
-
-        <div class="form-group">
-          <label for="ngay">Ngày</label>
-          <input type="number" id="ngay" name="NGAY" required>
-        </div>
-
+    <div class="card notice-card" id="noticeBox">
+      <div class="notice-head">
+        <h2>Thông báo</h2>
       </div>
 
-      <button type="submit" class="primary-btn">Dự đoán</button>
-    </form>
+      {% if notice_text %}
+        <div class="notice-content {{ 'notice-' ~ (notice_level or 'info') }}">
+          {{ notice_text }}
+        </div>
+      {% else %}
+        <div class="notice-content notice-info">
+          Chưa có thông báo mới.
+        </div>
+      {% endif %}
+    </div>
 
-    {% if results %}
-      <hr>
+    <div class="card result-card">
       <h2>Kết quả dự đoán</h2>
-      <div class="result-box">
-        <p><b>Nguy cơ bệnh Vibrio:</b> {{ results.task1_text }} </p>
-        <p><b>Vibrio tổng số ước lượng:</b> ≈ {{ results.task2_vibrio_est }} CFU/ml </p>
-        <p><b>Mức độ phù hợp môi trường tôm:</b> {{ results.task3_text }} </p>
-        <p><b>Điều kiện tảo thức ăn:</b> {{ results.task4_text }} </p>
+
+      {% if results %}
+        <div class="result-box">
+          <p><b>Nguy cơ bệnh Vibrio:</b> {{ results.task1_text }}</p>
+          <p><b>Vibrio tổng số ước lượng:</b> ≈ {{ results.task2_vibrio_est }} CFU/ml</p>
+          <p><b>Mức độ phù hợp môi trường tôm:</b> {{ results.task3_text }}</p>
+          <p><b>Điều kiện tảo thức ăn:</b> {{ results.task4_text }}</p>
+        </div>
+      {% else %}
+        <p>Chưa có kết quả. Hãy nhập dữ liệu bên trái và nhấn <b>Dự đoán</b>.</p>
+      {% endif %}
+    </div>
+
+    <div class="card chat-card">
+      <div class="chat-head">
+        <h2>Trò chuyện với trợ lý nuôi tôm</h2>
+        <form method="POST" action="/chat/clear" class="chat-clear">
+          <button type="submit" class="ghost-btn" title="Xóa hội thoại">Xóa</button>
+        </form>
       </div>
-    {% endif %}
 
-    <p class="back-link"><a href="/"> Về trang chủ</a></p>
+      <p class="chat-hint">Gõ “phân tích” để chỉ phân tích, hoặc “tư vấn” để có giải pháp.</p>
 
-  </div> 
+      <div class="chat-messages" id="chat-messages">
+        {% if chat_history is defined and chat_history %}
+          {% for msg in chat_history %}
+            <div class="chat-message {{ msg.role }}">
+              <div class="sender">{{ "Bạn" if msg.role == "user" else "Trợ lý" }}</div>
+              <div class="bubble">
+                {% if msg.content_html is defined %}
+                  {{ msg.content_html | safe }}
+                {% else %}
+                  {{ msg.content }}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="chat-placeholder">Chưa có hội thoại. Hãy nhập câu hỏi phía dưới để bắt đầu.</p>
+        {% endif %}
+      </div>
 
-  <script>
-    const today = new Date();
-    document.getElementById("nam").value = today.getFullYear();
-    document.getElementById("thang").value = today.getMonth() + 1;
-    document.getElementById("ngay").value = today.getDate();
-  </script>
+      <form method="POST" action="/chat" class="chat-input-row" id="chat-form">
+        <input type="text" name="chat_input" placeholder="Nhập câu hỏi cho trợ lý…" autocomplete="off" required>
+        <button type="submit" class="primary-btn chat-btn">Gửi</button>
+      </form>
+    </div>
 
-</body>
-</html>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const today = new Date();
+  const namEl = document.getElementById("nam");
+  const thangEl = document.getElementById("thang");
+  const ngayEl = document.getElementById("ngay");
+
+  if (namEl && thangEl && ngayEl) {
+    if (!namEl.value) namEl.value = today.getFullYear();
+    if (!thangEl.value) thangEl.value = today.getMonth() + 1;
+    if (!ngayEl.value) ngayEl.value = today.getDate();
+  }
+
+  function scrollChatToBottom() {
+    const chatBox = document.getElementById("chat-messages");
+    if (!chatBox) return;
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  window.addEventListener("load", function () {
+    const force = "{{ '1' if scroll_to_bottom else '0' }}";
+    if (force === "1") scrollChatToBottom();
+  });
+</script>
+{% endblock %}
