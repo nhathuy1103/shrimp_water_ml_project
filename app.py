@@ -24,6 +24,8 @@ from src.models.db_models import (
     thong_bao, da_doc_thong_bao
 )
 
+application = Flask(__name__)
+
 load_dotenv()
 
 ALLOWED_TAGS = [
@@ -1003,6 +1005,5 @@ def _register_routes(app: Flask) -> None:
 app = create_app()
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port, debug=False)
